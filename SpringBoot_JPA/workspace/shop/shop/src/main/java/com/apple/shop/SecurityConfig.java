@@ -1,12 +1,15 @@
 package com.apple.shop;
 
+import com.apple.shop.member.JwtFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.ExceptionTranslationFilter;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 
@@ -38,6 +41,13 @@ public class SecurityConfig {
                 .ignoringRequestMatchers("/login")
         );
 
+        // 로그인 시 세션 데이터를 만들 지 않도록 하는 것
+        http.csrf((csrf) -> csrf.disable());
+        http.sessionManagement((session) -> session
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+        );
+
+        http.addFilterBefore(new JwtFilter(), ExceptionTranslationFilter.class);
         return http.build();
     }
 

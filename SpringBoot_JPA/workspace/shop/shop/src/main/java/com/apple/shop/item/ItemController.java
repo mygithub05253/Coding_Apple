@@ -4,6 +4,7 @@ package com.apple.shop.item;
 // 상품과 관련된 API를 저장하는 곳
 // 비슷한 API는 한 곳에 모아두는 것이 효율적
 
+import com.apple.shop.comment.CommentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -20,11 +21,15 @@ public class ItemController {
 
     private final ItemRepository itemRepository;
     private final ItemService itemService;
+    private final S3Service s3Service;
+    private final CommentRepository commentRepository;
 
     @Autowired
-    public ItemController(ItemRepository itemRepository, ItemService itemService) {
+    public ItemController(ItemRepository itemRepository, ItemService itemService, S3Service s3Service, CommentRepository commentRepository) {
         this.itemRepository = itemRepository;
         this.itemService = itemService;
+        this.s3Service = s3Service;
+        this.commentRepository = commentRepository;
     }
 
     @GetMapping("/list")
@@ -49,6 +54,8 @@ public class ItemController {
 
     @GetMapping("/detail/{id}")
     String detail(@PathVariable Long id, Model model) {
+
+        commentRepository.findAllByParentId(1L);
 
         Optional<Item> result = itemRepository.findById(id);
         if (result.isPresent()){
@@ -86,5 +93,21 @@ public class ItemController {
     ResponseEntity<String> deleteItem(@RequestParam Long id) {
         itemRepository.deleteById(id);
         return ResponseEntity.status(200).body("삭제완료");
+    }
+
+    @GetMapping("/presigned-url")
+    @ResponseBody
+    String getURL(@RequestParam String filename){
+        var result = s3Service.createPresignedUrl("test/" + filename);
+        return result;
+    }
+
+    @PostMapping("/search")
+    String postSearch(@RequestParam String searchText) {
+        // Item테이블에서 searchText가 들어있는거 찾아서 가져오기
+        var result = itemRepository.fullTextSearch(searchText);
+        System.out.println(result);
+
+        return "list.html";
     }
 }
